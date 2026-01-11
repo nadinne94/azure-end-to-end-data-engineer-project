@@ -10,10 +10,19 @@ O cenário utiliza o banco de dados **AdventureWorksLT**, simulando um ambiente 
 ---
 
 ## 2. Arquitetura
-A solução foi construída seguindo o padrão **Medallion Architecture[^1]**, promovendo organização, escalabilidade e separação de responsabilidades.
+
+ A solução foi construída seguindo o padrão **Medallion Architecture[^1]**:
+
 - **Bronze**: dados brutos ingeridos do SQL Server
 - **Silver**: dados tratados e padronizados
 - **Gold**: dados prontos para consumo analítico
+
+<div align="center">
+
+  ![](docs/arquitetura.png)
+
+Fluxo dos dados: SQL Server → ADF → ADLS (Bronze/Silver/Gold) → Databricks → Power BI
+</div>
 
 ### Tecnologias Utilizadas:
 - **SQL Server:** banco de dados (on-prem)
@@ -21,15 +30,6 @@ A solução foi construída seguindo o padrão **Medallion Architecture[^1]**, p
 - **Azure Data Lake Storage Gen2**: armazenamento em camadas
 - **Azure Databricks**: processamento e transformação de dados
 - **Power BI**: consumo analítico
-
-**Diagrama de Arquitetura**
-- Fluxo ponta a ponta: SQL Server → ADF → ADLS (Bronze/Silver/Gold) → Databricks → Power BI
-
-<div align="center">
-
-  ![](docs/arquitetura.png)
-
-</div>
 ---
 
 ## 3. Ingestão de Dados (Bronze)
@@ -37,12 +37,17 @@ A solução foi construída seguindo o padrão **Medallion Architecture[^1]**, p
 - Ingestão realizada via Azure Data Factory
 - Utilização de **Self-hosted Integration Runtime**
 - Extração dinâmica das tabelas do schema `SalesLT`
-- Persistência dos dados em **Parquet** no ADLS Gen2
+- Dados salvos em formato **Parquet**
 
 ---
 
 ## 4. Processamento de Dados (Silver)
 As transformações foram realizadas no Azure Databricks utilizando PySpark:
+
+1º Passo: Configurar o acesso ao Azure Data Lake[^2][^3]
+Definição dos caminhos de acesso ao Azure Data Lake Gen2 utilizando o protocolo ABFSS, garantindo padronização e separação de responsabilidades entre configuração e transformação de dados.
+![](storage_access.py)
+
 
 - Padronização dos nomes das colunas (snake_case)
 - Conversão de campos de data para formato `yyyy-MM-dd`
@@ -55,8 +60,6 @@ As transformações foram realizadas no Azure Databricks utilizando PySpark:
 Na camada Gold, os dados foram organizados para facilitar o consumo analítico:
 
 - Estruturação dos dados por domínio
-- Persistência em formato **Parquet**
-- Separação dos dados destinados ao Power BI
 
 > A criação de tabelas no metastore e a modelagem dimensional não fazem parte do escopo do projeto.
 
@@ -98,3 +101,6 @@ Projeto desenvolvido a partir de um tutorial do canal **Brazil Data Guy**, com a
 
 ## Referências
 [^1]:Medallion Architecture: https://www.databricks.com/br/glossary/medallion-architecture
+[^2]:Sistema de Arquivos de Blobs do Azure(ABFSS): https://learn.microsoft.com/pt-br/azure/storage/blobs/data-lake-storage-abfs-driver
+[^3]:Conexão Azure Data Lake: https://docs.databricks.com/aws/pt/connect/storage/azure-storage
+Secret Scopehttps://learn.microsoft.com/en-us/azure/databricks/security/secrets/
