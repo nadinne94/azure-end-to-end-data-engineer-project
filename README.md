@@ -109,6 +109,6 @@ Projeto desenvolvido a partir de um tutorial do canal **Brazil Data Guy**, com a
 [^2]:Acesso via ABFSS: https://github.com/nadinne94/azure-end-to-end-data-engineer-project/blob/main/storage_access.ipynb
 [^3]:Bronze to Silver: https://github.com/nadinne94/azure-end-to-end-data-engineer-project/blob/main/bronzetosilver.ipynb
 [^4]:Silver to Gold: https://github.com/nadinne94/azure-end-to-end-data-engineer-project/blob/main/silvertogold.ipynb
-[^5]:Secret Scopehttps://learn.microsoft.com/en-us/azure/databricks/security/secrets/
+[^5]:Secret Scope: https://learn.microsoft.com/en-us/azure/databricks/security/secrets/
 [^6]:Sistema de Arquivos de Blobs do Azure(ABFSS): https://learn.microsoft.com/pt-br/azure/storage/blobs/data-lake-storage-abfs-driver
-[^7] Conexão Azure Data Lake: https://docs.databricks.com/aws/pt/connect/storage/azure-storage
+[^7]:Conexão Azure Data Lake: https://docs.databricks.com/aws/pt/connect/storage/azure-storage
