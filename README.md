@@ -53,11 +53,32 @@ O pipeline foi realizado através do DataFactory em conjunto com o Databricks. N
 - Padronização dos nomes das colunas
 - Validação de schema
 
-![](docs/pipelineexecutado.png)
+![](docs/pipelineexecutada.png)
 
-### Estrutura do Data Lake
+Estrutura do Data Lake
 
-![](docs/estruturadatalake.png)
+```text
+/Contêineres
+  ├──bronze/
+      └── SalesLT/
+       ├── Address/
+       ├── Customer/
+       ├── Product/
+  
+  ├──silver/
+      └── SalesLT/
+       ├── Address/
+       ├── Customer/
+       ├── Product/
+  
+  └──gold/
+      └── SalesLT/
+       ├── Address/
+       ├── Customer/
+       ├── Product/
+ ````
+
+ ----
 
 ## 4. Consumo Analítico (Power BI)
 - Conexão direta do Power BI ao Azure Data Lake Storage Gen2
