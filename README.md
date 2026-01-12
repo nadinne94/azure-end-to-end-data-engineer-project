@@ -32,75 +32,62 @@ Fluxo dos dados: SQL Server → ADF → ADLS (Bronze/Silver/Gold) → Databricks
 - **Power BI**: consumo analítico
 ---
 
-## 3. Ingestão de Dados (Bronze)
+## 3. Pipeline de Dados
+
+O pipeline foi realizado através do DataFactory em conjunto com o Databricks. No datafactory coletamos on dados no banco on-premises e com o databricks acessamos estes dados[^2], tratamos[^3] e disponibilizamos para consumo[^4]. Os notebooks com os códigos em python estão linkados no final do arquivo.
+
+### 3.1 Ingestão de Dados (Bronze)
 - Fonte: SQL Server local (AdventureWorksLT)
-- Ingestão realizada via Azure Data Factory
 - Utilização de **Self-hosted Integration Runtime**
 - Extração dinâmica das tabelas do schema `SalesLT`
 - Dados salvos em formato **Parquet**
 
----
-
-## 4. Processamento de Dados (Silver)
-As transformações foram realizadas no Azure Databricks utilizando PySpark:
-
-1º Passo: Configurar o acesso ao Azure Data Lake[^2][^3]
-Definição dos caminhos de acesso ao Azure Data Lake Gen2 utilizando o protocolo ABFSS, garantindo padronização e separação de responsabilidades entre configuração e transformação de dados.
-![](storage_access.py)
-
-
+### 3.2 Processamento dos Dados (Silver) 
+- Armazenamento das chaves cliente_id e cliente_secret no Secret Scope[^5]
+- Definição dos caminhos de acesso ao Azure Data Lake Gen2 utilizando o protocolo ABFSS[^6][^7]
 - Padronização dos nomes das colunas (snake_case)
 - Conversão de campos de data para formato `yyyy-MM-dd`
-- Organização dos dados por tabela
-- Escrita dos dados tratados na camada Silver
+- Dados tratados salvos no conteiner silver
+ 
+### 3.3. Disponibilização para Consumo (Gold)
+- Padronização dos nomes das colunas
+- Validação de schema
 
----
+![](docs/pipelineexecutado.png)
 
-## 5. Disponibilização para Consumos (Gold)
-Na camada Gold, os dados foram organizados para facilitar o consumo analítico:
+### Estrutura do Data Lake
 
-- Estruturação dos dados por domínio
+![](docs/estruturadatalake.png)
 
-> A criação de tabelas no metastore e a modelagem dimensional não fazem parte do escopo do projeto.
-
----
-
-## 6. Consumo Analítico (Power BI)
+## 4. Consumo Analítico (Power BI)
 - Conexão direta do Power BI ao Azure Data Lake Storage Gen2
 - Leitura dos dados da camada Gold
 - Dados preparados para análise sem necessidade de movimentação adicional
+  
+Observação: Por limitações de SKU, o consumo Delta no Power BI foi feito via Parquet / não foi possível usar Databricks SQL Warehouse.
+
+![](docs/relaçãotabelasbi.png)
 
 ---
 
-## 7. Estrutura do Data Lake
-bronze/
-
-└── SalesLT/
-
-silver/
-
-└── SalesLT/
-
-gold/
-
-└── SalesLT/
-
-
----
-
-## 8. Considerações Técnicas
+## 5. Considerações Técnicas
 - O projeto foi adaptado para o ambiente **Azure Free Trial**
 - Algumas configurações foram ajustadas em relação ao tutorial original
 - O foco do projeto é Engenharia de Dados, não modelagem analítica
 
 ---
 
-## 9. Fonte
+## 6. Fonte
 Projeto desenvolvido a partir de um tutorial do canal **Brazil Data Guy**, com adaptações e implementações próprias.
+
+[Projeto Engenharia de Dados End to End](https://www.youtube.com/watch?v=viKANCDhOqo&list=PLjofrX8yPdUQl_Z5w6gM0yet_3XGPSqjV)
 
 
 ## Referências
 [^1]:Medallion Architecture: https://www.databricks.com/br/glossary/medallion-architecture
-[^2]:Sistema de Arquivos de Blobs do Azure(ABFSS): https://learn.microsoft.com/pt-br/azure/storage/blobs/data-lake-storage-abfs-driver
-[^3]:Conexão Azure Data Lake: https://docs.databricks.com/aws/pt/connect/storage/azure-storage
-Secret Scopehttps://learn.microsoft.com/en-us/azure/databricks/security/secrets/
+[^2]:Acesso via ABFSS: https://github.com/nadinne94/azure-end-to-end-data-engineer-project/blob/main/storage_access.ipynb
+[^3]:Bronze to Silver: https://github.com/nadinne94/azure-end-to-end-data-engineer-project/blob/main/bronzetosilver.ipynb
+[^4]:Silver to Gold: https://github.com/nadinne94/azure-end-to-end-data-engineer-project/blob/main/silvertogold.ipynb
+[^5]:Secret Scopehttps://learn.microsoft.com/en-us/azure/databricks/security/secrets/
+[^6]:Sistema de Arquivos de Blobs do Azure(ABFSS): https://learn.microsoft.com/pt-br/azure/storage/blobs/data-lake-storage-abfs-driver
+[^7] Conexão Azure Data Lake: https://docs.databricks.com/aws/pt/connect/storage/azure-storage
