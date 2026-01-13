@@ -9,7 +9,12 @@ O cenário utiliza o banco de dados **AdventureWorksLT**, simulando um ambiente 
 
 ---
 
-## 2. Arquitetura
+## 2. Objetivo do Projeto
+Demonstrar a construção de um pipeline de Engenharia de Dados escalável em Azure, aplicando a arquitetura Medallion desde a ingestão até o consumo analítico.
+
+---
+
+## 3. Arquitetura
 
  A solução foi construída seguindo o padrão **Medallion Architecture[^1]**:
 
@@ -25,40 +30,63 @@ Fluxo dos dados: SQL Server → ADF → ADLS (Bronze/Silver/Gold) → Databricks
 </div>
 
 ### Tecnologias Utilizadas:
-- **SQL Server:** banco de dados (on-prem)
+- **SQL Server:** banco de dados (on-premises)
 - **Azure Data Factory**: orquestração e ingestão de dados
 - **Azure Data Lake Storage Gen2**: armazenamento em camadas
+- **Azure Key Vault**: segurança e governança dos dados
 - **Azure Databricks**: processamento e transformação de dados
 - **Power BI**: consumo analítico
+
 ---
 
-## 3. Pipeline de Dados
+## 5. Pipeline de Dados
 
-O pipeline foi realizado através do DataFactory em conjunto com o Databricks. No datafactory coletamos on dados no banco on-premises e com o databricks acessamos estes dados[^2], tratamos[^3] e disponibilizamos para consumo[^4]. Os notebooks com os códigos em python estão linkados no final do arquivo.
+### Como Executar
+1. Criar recursos no Azure (Data Factory, Storage Account, Databricks, Databricks Conector, Key Vault)
+2. Configurar Microsoft Integration Runtime
+3. Conectar o Data Factory ao banco de dados SQL Server On-Premises
+4. [Ingestão dos dados brutos no Data Lake Storage Gen2](#ingest-anchor-point)
+5. [Autenticar e acessar aos dados armazendaos, além da aplicação de transformações de dados no Databricks](#treatment-anchor-point)
+6. [Executar pipeline no Data Factory](#pipeline-anchor-point)
 
-### 3.1 Ingestão de Dados (Bronze)
-- Fonte: SQL Server local (AdventureWorksLT)
-- Utilização de **Self-hosted Integration Runtime**
-- Extração dinâmica das tabelas do schema `SalesLT`
-- Dados salvos em formato **Parquet**
+<a name="ingest-anchor-point">
 
-### 3.2 Processamento dos Dados (Silver) 
-- Armazenamento das chaves cliente_id e cliente_secret no Secret Scope[^5]
-- Definição dos caminhos de acesso ao Azure Data Lake Gen2 utilizando o protocolo ABFSS[^6][^7]
-- Padronização dos nomes das colunas (snake_case)
-- Conversão de campos de data para formato `yyyy-MM-dd`
-- Dados tratados salvos no conteiner silver
- 
-### 3.3. Disponibilização para Consumo (Gold)
-- Padronização dos nomes das colunas
-- Validação de schema
+ ### Ingestão de Dados (Bronze)
+ - Fonte: SQL Server local (AdventureWorksLT)
+ - Utilização de **Self-hosted Integration Runtime**
+ - Extração dinâmica das tabelas do schema `SalesLT`
+ - Dados salvos em formato **Parquet**
+</a>
 
+<a name="treatment-anchor-point">
+
+ ### Processamento dos Dados
+ #### Acesso ao armazenamento[^2]
+ - Armazenamento das chaves cliente_id e cliente_secret no Secret Scope[^3]
+ - Definição dos caminhos de acesso ao Azure Data Lake Gen2 utilizando o protocolo ABFSS[^4][^5]
+ #### Bronze to Silver[^6]
+ - Padronização dos nomes das colunas (snake_case)
+ - Conversão de campos de data para formato `yyyy-MM-dd`
+ - Dados salvos no container silver após tratamento inicial.
+#### Silver to Gold[^7]
+- Reorganização dos dados por entidade
+- Garantia de consistência de schema
+
+> A validação de schema garante consistência entre execuções e facilita a evolução do pipeline, mesmo quando o consumo Delta não é direto.
+
+</a>
+<a name="pipeline-anchor-point">
+
+### Visualização do Pipeline
 ![](docs/pipelineexecutada.png)
+</a>
 
-Estrutura do Data Lake
+ ---
+
+## 6. Estrutura do Data Lake
 
 ```text
-/Contêineres
+/Containers
   ├──bronze/
       └── SalesLT/
        ├── Address/
@@ -77,38 +105,41 @@ Estrutura do Data Lake
        ├── Customer/
        ├── Product/
  ````
-
  ----
 
-## 4. Consumo Analítico (Power BI)
+## 7. Consumo Analítico (Power BI)
 - Conexão direta do Power BI ao Azure Data Lake Storage Gen2
 - Leitura dos dados da camada Gold
 - Dados preparados para análise sem necessidade de movimentação adicional
   
-Observação: Por limitações de SKU, o consumo Delta no Power BI foi feito via Parquet / não foi possível usar Databricks SQL Warehouse.
+> Por limitações de SKU, o consumo Delta no Power BI foi feito via Parquet pois não foi possível usar Databricks SQL Warehouse.
 
 ![](docs/relaçãotabelasbi.png)
 
 ---
 
-## 5. Considerações Técnicas
+## 8. Considerações Técnicas
 - O projeto foi adaptado para o ambiente **Azure Free Trial**
 - Algumas configurações foram ajustadas em relação ao tutorial original
+- Orquestração centralizada no Azure Data Factory
+- Transformações concentradas no Databricks
+- Uso de Parquet no consumo final devido a limitações de SKU
 - O foco do projeto é Engenharia de Dados, não modelagem analítica
 
 ---
 
-## 6. Fonte
+## 9. Fonte
 Projeto desenvolvido a partir de um tutorial do canal **Brazil Data Guy**, com adaptações e implementações próprias.
 
 [Projeto Engenharia de Dados End to End](https://www.youtube.com/watch?v=viKANCDhOqo&list=PLjofrX8yPdUQl_Z5w6gM0yet_3XGPSqjV)
 
+---
 
 ## Referências
 [^1]:Medallion Architecture: https://www.databricks.com/br/glossary/medallion-architecture
 [^2]:Acesso via ABFSS: https://github.com/nadinne94/azure-end-to-end-data-engineer-project/blob/main/storage_access.ipynb
-[^3]:Bronze to Silver: https://github.com/nadinne94/azure-end-to-end-data-engineer-project/blob/main/bronzetosilver.ipynb
-[^4]:Silver to Gold: https://github.com/nadinne94/azure-end-to-end-data-engineer-project/blob/main/silvertogold.ipynb
-[^5]:Secret Scope: https://learn.microsoft.com/en-us/azure/databricks/security/secrets/
-[^6]:Sistema de Arquivos de Blobs do Azure(ABFSS): https://learn.microsoft.com/pt-br/azure/storage/blobs/data-lake-storage-abfs-driver
-[^7]:Conexão Azure Data Lake: https://docs.databricks.com/aws/pt/connect/storage/azure-storage
+[^3]:Secret Scope: https://learn.microsoft.com/en-us/azure/databricks/security/secrets/
+[^4]:Sistema de Arquivos de Blobs do Azure(ABFSS): https://learn.microsoft.com/pt-br/azure/storage/blobs/data-lake-storage-abfs-driver
+[^5]:Conexão Azure Data Lake: https://docs.databricks.com/aws/pt/connect/storage/azure-storage
+[^6]:Bronze to Silver: https://github.com/nadinne94/azure-end-to-end-data-engineer-project/blob/main/bronzetosilver.ipynb
+[^7]:Silver to Gold: https://github.com/nadinne94/azure-end-to-end-data-engineer-project/blob/main/silvertogold.ipynb
