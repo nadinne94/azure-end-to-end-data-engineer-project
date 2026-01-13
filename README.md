@@ -1,6 +1,6 @@
 <div align="justify">
 
-# Azure End-to-End Data Engineering Project
+# Projeto Engenharia de Dados End to End com Azure
 
 ## 1. Visão Geral
 Este projeto demonstra a implementação de um pipeline de Engenharia de Dados de ponta a ponta *(end to end)* utilizando serviços da Microsoft Azure. O fluxo cobre desde a ingestão de dados transacionais até a disponibilização dos dados para consumo analítico no Power BI.
@@ -17,7 +17,6 @@ Demonstrar a construção de um pipeline de Engenharia de Dados escalável em Az
 ## 3. Arquitetura
 
  A solução foi construída seguindo o padrão **Medallion Architecture[^1]**:
-
 - **Bronze**: dados brutos ingeridos do SQL Server
 - **Silver**: dados tratados e padronizados
 - **Gold**: dados prontos para consumo analítico
@@ -33,53 +32,49 @@ Fluxo dos dados: SQL Server → ADF → ADLS (Bronze/Silver/Gold) → Databricks
 - **SQL Server:** banco de dados (on-premises)
 - **Azure Data Factory**: orquestração e ingestão de dados
 - **Azure Data Lake Storage Gen2**: armazenamento em camadas
+- **Azure Databricks Access Connector**: integrar o Azure Data Factory ao Azure Databricks
 - **Azure Key Vault**: segurança e governança dos dados
 - **Azure Databricks**: processamento e transformação de dados
 - **Power BI**: consumo analítico
-
 ---
 
 ## 5. Pipeline de Dados
 
-### Como Executar
-1. Criar recursos no Azure (Data Factory, Storage Account, Databricks, Databricks Conector, Key Vault)
-2. Configurar Microsoft Integration Runtime
-3. Conectar o Data Factory ao banco de dados SQL Server On-Premises
-4. [Ingestão dos dados brutos no Data Lake Storage Gen2](#ingest-anchor-point)
-5. [Autenticar e acessar aos dados armazendaos, além da aplicação de transformações de dados no Databricks](#treatment-anchor-point)
-6. [Executar pipeline no Data Factory](#pipeline-anchor-point)
+### Criar recursos no Azure (Data Factory, Storage Account, Databricks, Databricks Conector, Key Vault)
+   
+### Configurar Microsoft Integration Runtime
 
-<a name="ingest-anchor-point">
+### Conectar o Data Factory ao banco de dados SQL Server On-Premises
 
- ### Ingestão de Dados (Bronze)
+
+
+ ### Ingestão dos dados
+ - Ingestão dos dados brutos no Data Lake Storage Gen2
  - Fonte: SQL Server local (AdventureWorksLT)
  - Utilização de **Self-hosted Integration Runtime**
  - Extração dinâmica das tabelas do schema `SalesLT`
- - Dados salvos em formato **Parquet**
-</a>
+ - Dados salvos em formato **Parquet** no conteiner **_bronze_**.
 
-<a name="treatment-anchor-point">
-
- ### Processamento dos Dados
+ ### Processamento dos dados
+ - Autenticar e acessar aos dados armazendaos, além da aplicação de transformações de dados no Databricks
  #### Acesso ao armazenamento[^2]
  - Armazenamento das chaves cliente_id e cliente_secret no Secret Scope[^3]
  - Definição dos caminhos de acesso ao Azure Data Lake Gen2 utilizando o protocolo ABFSS[^4][^5]
  #### Bronze to Silver[^6]
  - Padronização dos nomes das colunas (snake_case)
  - Conversão de campos de data para formato `yyyy-MM-dd`
- - Dados salvos no container silver após tratamento inicial.
+ - Dados salvos no container **_silver_** após tratamento inicial.
 #### Silver to Gold[^7]
 - Reorganização dos dados por entidade
 - Garantia de consistência de schema
+- Dados salvos no container **_gold_**, disponibilizados para consumo.
 
 > A validação de schema garante consistência entre execuções e facilita a evolução do pipeline, mesmo quando o consumo Delta não é direto.
 
-</a>
-<a name="pipeline-anchor-point">
 
-### Visualização do Pipeline
+### 6. Execução do pipeline
+
 ![](docs/pipelineexecutada.png)
-</a>
 
  ---
 
@@ -123,6 +118,9 @@ Fluxo dos dados: SQL Server → ADF → ADLS (Bronze/Silver/Gold) → Databricks
 - Algumas configurações foram ajustadas em relação ao tutorial original
 - Orquestração centralizada no Azure Data Factory
 - Transformações concentradas no Databricks
+- Parquet foi utilizado na camada Bronze por ser eficiente para ingestão em larga escala.
+- Delta Lake foi adotado nas camadas Silver e Gold para garantir consistência de schema,
+  controle transacional e facilidade de evolução do pipeline.
 - Uso de Parquet no consumo final devido a limitações de SKU
 - O foco do projeto é Engenharia de Dados, não modelagem analítica
 
