@@ -1,0 +1,11 @@
+# SQL Server On-Premises
+- 1º Conectar ao servidor
+- 2º Banco de dados:
+  - Autenticação do servidor: Modo de Autenticação do SQL Server e do Windows
+  - Restaurar banco de dados: [AdventureWorksLT2025](https://learn.microsoft.com/en-us/sql/samples/adventureworks-install-configure?view=sql-server-ver16&tabs=ssms)
+  - Criar usuário dentro do banco AdventureWorksLT2025
+    ```
+    CREATE LOGIN xxxxx WITH PASSWORD = 'yyyyy'
+    CREATE USER xxxxx FOR LOGIN xxxxx
+    ```
+  - Associar a função _db_datareader_ ao usuário
