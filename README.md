@@ -180,12 +180,10 @@ Ingestão dos dados do banco de dados on-prem na camada bronze do datalake
 - Transformar os dados em formato delta em tabelas sql
   ```
   gold_base_path = "abfss://gold@armazenamentodatalake26.dfs.core.windows.net/SalesLT/"
-
-spark.sql("USE CATALOG databricks_7405608788677390")
-spark.sql("USE SCHEMA gold")
-gold_tables = dbutils.fs.ls(gold_base_path)
-
-for item in gold_tables:
+  spark.sql("USE CATALOG databricks_7405608788677390")
+  spark.sql("USE SCHEMA gold")
+  gold_tables = dbutils.fs.ls(gold_base_path)
+  for item in gold_tables:
     table_name = item.name.replace("/", "")
     table_path = item.path
 
