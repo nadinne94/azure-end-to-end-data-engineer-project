@@ -177,10 +177,36 @@ Ingestão dos dados do banco de dados on-prem na camada bronze do datalake
  ````
  ----
 ## 7. Consumo Analítico (Power BI)
-- Conexão direta do Power BI ao Azure Data Lake Storage Gen2
+- Transformar os dados em formato delta em tabelas sql
+  ```
+  gold_base_path = "abfss://gold@armazenamentodatalake26.dfs.core.windows.net/SalesLT/"
+
+spark.sql("USE CATALOG databricks_7405608788677390")
+spark.sql("USE SCHEMA gold")
+gold_tables = dbutils.fs.ls(gold_base_path)
+
+for item in gold_tables:
+    table_name = item.name.replace("/", "")
+    table_path = item.path
+
+    if table_name.startswith("_"):
+        continue
+
+    print(f"Criando tabela: {table_name}")
+    
+    spark.sql(f"""
+        CREATE TABLE IF NOT EXISTS {table_name}
+        USING DELTA
+        LOCATION '{table_path}'
+    """)
+  ```
+- Conexão direta do Power BI ao Databricks
 - Leitura dos dados da camada Gold
 - Dados preparados para análise
 - Possível continuação do projeto trazendo alguns insigts dos dados.
+
+<img width="3484" height="644" alt="image" src="https://github.com/user-attachments/assets/ba18cf21-c8e3-4745-826f-f3669c71c309" />
+
 ---
 ## 8. Considerações Técnicas
 - O projeto foi adaptado para o ambiente **Azure Free Trial**
@@ -189,7 +215,6 @@ Ingestão dos dados do banco de dados on-prem na camada bronze do datalake
 - Transformações concentradas no Databricks
 - Parquet foi utilizado na camada Bronze por ser eficiente para ingestão em larga escala.
 - Delta Lake foi adotado nas camadas Silver e Gold para garantir consistência de schema, controle transacional e facilidade de evolução do pipeline
-- Uso de Parquet no consumo final devido a limitações de SKU
 - O foco do projeto é Engenharia de Dados, não modelagem analítica
 
 ---
