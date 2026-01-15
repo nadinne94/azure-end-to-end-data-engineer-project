@@ -3,26 +3,32 @@
 # Projeto Engenharia de Dados End-to-End com Azure
 ![Azure](https://img.shields.io/badge/Azure-0089D6?logo=microsoft-azure&logoColor=white)
 ![Databricks](https://img.shields.io/badge/Databricks-FF3621?logo=databricks&logoColor=white)
+![ADF](https://img.shields.io/badge/orchestration-Azure%20Data%20Factory-blue)
 ![Delta Lake](https://img.shields.io/badge/Delta_Lake-003366?logo=apachespark&logoColor=white)
 ![Power BI](https://img.shields.io/badge/Power_BI-F2C811?logo=powerbi&logoColor=black)
+![Language](https://img.shields.io/badge/language-Python-blue)
 </div>
-  
----
-## Visão Geral
-Este projeto demonstra a implementação de um pipeline de dados na Azure aplicando a arquitetura **Medallion**. O fluxo cobre desde a ingestão de dados transacionais _(AdventureWorksLT)_ até a disponibilização para consumo analítico no Power BI.
+
+>**Fonte do projeto**
+>
+>Este projeto foi desenvolvido com base no tutorial do YouTube do canal [Brazil Data Guy](https://www.youtube.com/watch?v=viKANCDhOqo&list=PLjofrX8yPdUQl_Z5w6gM0yet_3XGPSqjV), com adaptações, extensões e decisões técnicas próprias.
 
 ---
-## Arquitetura
-A arquitetura segue um fluxo clássico de engenharia de dados:
-  - Fonte de dados: base de dados relacional
-  - Ingestão: Azure Data Factory
-  - Armazenamento: Azure Data Lake Storage Gen2
-  - Processamento: Azure Databricks (Spark + Delta Lake)
-  - Consumo: Power BI
-<div align='center'>
-    
-![](docs/arquitetura.png)
-</div>
+
+<details>
+<summary>Índice</summary>
+
+- [Visão Geral do Projeto](#visão-geral-do-projeto)
+- [Tecnologias Utilizadas](#tecnologias-utilizadas)
+- [Arquitetura](#arquitetura)
+- [Como Executar o Projeto](#como-executar-o-projeto)
+- [Considerações Finais](#considerações-finais)
+- [Referências](#referências)
+</details>
+
+---
+## Visão Geral do Projeto
+Este projeto demonstra a implementação de um pipeline de dados na Azure aplicando a arquitetura **Medallion**. O fluxo cobre desde a ingestão de dados transacionais _(AdventureWorksLT)_ até a disponibilização para consumo analítico no Power BI.
   
 ---
 ## Tecnologias Utilizadas:
@@ -40,7 +46,20 @@ Power BI | Consumo analítico
 </div>
 
 ---
-## Estrutura do Data Lake
+## Arquitetura
+A arquitetura segue um fluxo clássico de engenharia de dados:
+  - Fonte de dados: base de dados relacional
+  - Ingestão: Azure Data Factory
+  - Armazenamento: Azure Data Lake Storage Gen2
+  - Processamento: Azure Databricks (Spark + Delta Lake)
+  - Consumo: Power BI
+### Fluxo do Pipeline
+<div align='center'>
+    
+![](docs/arquitetura.png)
+</div>
+
+### Estrutura do Data Lake
   
 ```text
   ADLS/
@@ -60,7 +79,7 @@ Power BI | Consumo analítico
   - Estrutura otimizada para BI
 
 ---
-## Como executar
+## Como executar o Projeto
 **1. Criar recursos no Azure**
 - Storage account
 - Data Factory
@@ -81,15 +100,15 @@ Power BI | Consumo analítico
   - Databricks
 
 **4. Executar o pipeline de ingestão no Data Factory**
-   
-    ```
+```
     Pipeline Principal:
     ├── Lookup: Lista tabelas do SalesLT
     ├── ForEach: Processa cada tabela
     └── Copy Data: SQL Server → Data Lake
         ├── Fonte: SELECT * FROM SalesLT.{tabela}
         └── Destino: /bronze/SalesLT/{tabela}.parquet
-    ```
+```
+![](docs/ingestao_data.png)
 
 **5. Processamento no Databricks**
 
@@ -110,11 +129,11 @@ silver_to_gold|/silver/|/gold/|•Garantia de consistência de schemag<br> •Re
 - Criar tabelas Delta registradas como tabelas SQL
 - Conectar o Power BI ao SQL Warehouse_(databricks)_
   
-> Os notebooks utilizados neste processo estão disponíveis ao final do projeto para consulta e reprodução do pipeline.[^1]
+> Os notebooks no Azure Databricks são responsáveis por extrair dados da camada Bronze, aplicar transformações para Silver e Gold, padronizando esquemas e preparando os dados para consumo analítico. Os notebooks utilizados estão disponíveis na seção final deste repositório.[^1]
 
 **6. Automação do Pipeline**
 
-O Data Factory executa a ingestão dos dados na camada Bronze e, em seguida, realiza a chamada automática dos notebooks no Databricks, responsáveis pelas transformações nas camadas Silver e Gold, sem necessidade de intervenção manual.
+A automação é feita via gatilhos programados no Azure Data Factory, que iniciam o pipeline e chamam automaticamente os notebooks no Azure Databricks, garantindo um fluxo de dados end-to-end sem necessidade de intervenção manual.
   
 ![](docs/pipelineexecutada.png)
   
@@ -122,29 +141,24 @@ O Data Factory executa a ingestão dos dados na camada Bronze e, em seguida, rea
   
 **7. Consumo Analítico**
 
-O consumo analítico foi realizado a partir da camada Gold, garantindo que os dados estivessem tratados, padronizados e prontos para análise.<br>
-Essa abordagem reforça a separação de responsabilidades do pipeline, onde o Databricks é responsável pelo processamento e o Power BI atua exclusivamente na camada de visualização
-- Integração do Databricks com o Power BI
-- Importação das tabelas via SQL Waherouse
+O consumo analítico foi realizado conectando o Power BI ao Databricks SQL Warehouse, que expõe as tabelas da camada Gold de forma otimizada para BI, proporcionando performance superior à leitura direta de arquivos.
   
 <img width="3484" height="644" alt="image" src="https://github.com/user-attachments/assets/ba18cf21-c8e3-4745-826f-f3669c71c309" />
   
-> Por se tratar de um projeto com foco em Engenharia de Dados, o escopo não contemplou, neste momento, a análise detalhada dos relacionamentos entre as tabelas nem a exploração aprofundada das visualizações, priorizando a construção e automação do pipeline de dados.
-  
+> Por se tratar de um projeto com foco em Engenharia de Dados, a modelagem analítica detalhada (como análise aprofundada de relacionamentos entre tabelas ou dashboards exploratórios) ficou fora do escopo principal, que priorizou a construção, automação e integração do pipeline de dados.
+
 ---
-## Considerações Técnicas
-- Projeto desenvolvido a partir de um tutorial do canal [Brazil Data Guy](https://www.youtube.com/watch?v=viKANCDhOqo&list=PLjofrX8yPdUQl_Z5w6gM0yet_3XGPSqjV)
-- Algumas configurações foram ajustadas em relação ao tutorial original
-- Orquestração centralizada no Azure Data Factory
-- Transformações concentradas no Databricks
-- Parquet foi utilizado na camada Bronze por ser eficiente para ingestão em larga escala.
-- Delta Lake foi adotado nas camadas Silver e Gold para garantir consistência de schema, controle transacional e facilidade de evolução do pipeline
-- O foco do projeto é Engenharia de Dados, não modelagem analítica
-- Possível continuação do projeto no Power Bi trazendo alguns insigts dos dados.
+## Considerações Finais
+
+Este projeto demonstra a construção de um pipeline de dados moderno e automatizado em ambiente Azure, aplicando design de dados como arquitetura em camadas (Bronze, Silver e Gold), uso do Delta Lake, controle de schemas e orquestração com o Azure Data Factory. 
+
+O foco esteve na ingestão, processamento e disponibilização confiável dos dados para consumo analítico, priorizando escalabilidade, governança e automação. O projeto pode ser facilmente expandido para incluir novas fontes de dados, camadas adicionais de transformação ou análises mais avançadas, servindo como base para soluções de dados em ambientes corporativos.
+
 
 ---
 ## Referências
 [AdventureWorks](https://learn.microsoft.com/en-us/sql/samples/adventureworks-install-configure?view=sql-server-ver16&tabs=ssms)<br>
+[Brazil Data Guy](https://www.youtube.com/watch?v=viKANCDhOqo&list=PLjofrX8yPdUQl_Z5w6gM0yet_3XGPSqjV)<br>
 [Conexão Azure Data Lake](https://docs.databricks.com/aws/pt/connect/storage/azure-storage)<br>
 [Key Vault](https://learn.microsoft.com/pt-br/azure/data-factory/store-credentials-in-key-vault)<br>
 [Medallion Architecture](https://www.databricks.com/br/glossary/medallion-architecture)<br>
