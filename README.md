@@ -9,7 +9,7 @@
   
 ---
  ## Visão Geral
- Este projeto demonstra a implementação de um pipeline de dados na Azure aplicando a arquitetura **Medallion**[^1]. O fluxo cobre desde a ingestão de dados transacionais _(AdventureWorksLT)_[^2] até a disponibilização para consumo analítico no Power BI.
+ Este projeto demonstra a implementação de um pipeline de dados na Azure aplicando a arquitetura **Medallion**. O fluxo cobre desde a ingestão de dados transacionais _(AdventureWorksLT)_ até a disponibilização para consumo analítico no Power BI.
   
  ---
  ## Arquitetura
@@ -32,7 +32,7 @@
   :---|:---
   SQL Server | Banco de dados (on-premises)
   Azure Data Factory| Orquestração e ingestão de dados
-  Azure Data Lake Storage Gen2 | Armazenamento em camadas
+  Azure Data Lake Storage Gen2 (ADLS)| Armazenamento em camadas
   Azure Databricks | Processamento e transformação de dados
   Delta Lake | Camada transacional e versionamento
   Databricks SQL | Processamento e transformação de dados
@@ -61,19 +61,21 @@
 
   ---
   ## Como executar
-  1. Criar recursos no Azure
-     - Storage account
-     - Data Factory
-     - Databricks
-     - Databricks Access Conector
-     - Key Vault
-  2. Configurar permissões de acesso (RBAC)
-  3. Vincular Serviços _(Estúdio Data Factory)_
-     - SQL Server
-     - Key Vault
-     - Storage Acount
-     - Databricks
-  4. Executar o pipeline de ingestão no ADF
+  **1. Criar recursos no Azure**
+    - Storage account
+    - Data Factory
+    - Databricks
+    - Databricks Access Conector
+    - Key Vault
+ **2. Configurar permissões de acesso (RBAC)**
+ O Data Factory e o Databricks precisama de autorização adequada para leitura e escrita no ADLS Gen2, bem como acesso seguro aos segredos armazenados no Azure Key Vault. 
+ **3. Vincular Serviços _(Estúdio Data Factory)_**
+ No Data Factory, foram configurados Linked Services para estabelecer a comunicação entre os serviços do pipeline, incluindo:
+   - SQL Server
+   - Key Vault
+   - ADLS Gen2
+   - Databricks
+  **4. Executar o pipeline de ingestão no Data Factory**
   ```
   Pipeline Principal:
     ├── Lookup: Lista tabelas do SalesLT
@@ -82,13 +84,12 @@
         ├── Fonte: SELECT * FROM SalesLT.{tabela}
         └── Destino: /bronze/SalesLT/{tabela}.parquet
   ```
-  ---  
-  ## Processamento no Databricks
-  #### 1ª Etapa:
-  - Conexão com o ADLS Gen2
-  - Leitura de dados da camada Bronze
+ **5. Processamento no Databricks**
+ 1ª Etapa:
+   - Conexão com o ADLS Gen2
+   - Leitura de dados da camada Bronze
  
-  #### 2ª Etapa:
+ 2ª Etapa:
 <div align='center'>
     
   Notebook|Entrada|Saída|Transformações Principais
@@ -97,25 +98,26 @@
   silver_to_gold|/silver/|/gold/|•Garantia de consistência de schemag<br> •Reorganização dos dados por entidade<br> •Formato delta
 </div>
   
-  #### 3ª Etapa:
-  - Criar tabelas Delta registradas como tabelas SQL
-  - Conectar o Power BI ao SQL Warehouse_(databricks)_
+ 3ª Etapa:
+   - Criar tabelas Delta registradas como tabelas SQL
+   - Conectar o Power BI ao SQL Warehouse_(databricks)_
   
-  > Os notebooks[^3] utilizados foram disponibilizados no final do projeto
-  
-  ---
-  ## Automação do Pipeline
-  - Conexão entre o Databricks e o Data Factory
+  > Os notebooks utilizados neste processo estão disponíveis ao final do projeto para consulta e reprodução do pipeline.[^1]
+
+  **6. Automação do Pipeline**
+  O Data Factory executa a ingestão dos dados na camada Bronze e, em seguida, realiza a chamada automática dos notebooks no Databricks, responsáveis pelas transformações nas camadas Silver e Gold, sem necessidade de intervenção manual.
   ![](docs/pipelineexecutada.png)
   
-  ---
-  ## Consumo Analítico
-  - Integração do Databricks com o Power BI
-  - Importação das tabelas via SQL Waherouse
+  > Arquivo JSON com o código utilizado para este pipeline está disponível ao final do projeto para consulta e reprodução.[^2]
   
+  **7. Consumo Analítico**
+  O consumo analítico foi realizado a partir da camada Gold, garantindo que os dados estivessem tratados, padronizados e prontos para análise.<br>
+  Essa abordagem reforça a separação de responsabilidades do pipeline, onde o Databricks é responsável pelo processamento e o Power BI atua exclusivamente na camada de visualização
+    - Integração do Databricks com o Power BI
+    - Importação das tabelas via SQL Waherouse
   <img width="3484" height="644" alt="image" src="https://github.com/user-attachments/assets/ba18cf21-c8e3-4745-826f-f3669c71c309" />
   
-  > Por ser um projeto voltado para engenharia de dado, no momento, o projeto não conteplou a analisa dos relacionamentos entre as tabelas e a visualização dos dados.
+  > Por se tratar de um projeto com foco em Engenharia de Dados, o escopo não contemplou, neste momento, a análise detalhada dos relacionamentos entre as tabelas nem a exploração aprofundada das visualizações, priorizando a construção e automação do pipeline de dados.
   ---
   ## Considerações Técnicas
   - Projeto desenvolvido a partir de um tutorial do canal [Brazil Data Guy](https://www.youtube.com/watch?v=viKANCDhOqo&list=PLjofrX8yPdUQl_Z5w6gM0yet_3XGPSqjV)
@@ -129,16 +131,16 @@
     
   ---
   ## Referências
+  [AdventureWorks](https://learn.microsoft.com/en-us/sql/samples/adventureworks-install-configure?view=sql-server-ver16&tabs=ssms)<br>
+  [Conexão Azure Data Lake](https://docs.databricks.com/aws/pt/connect/storage/azure-storage)<br>
   [Key Vault](https://learn.microsoft.com/pt-br/azure/data-factory/store-credentials-in-key-vault)<br>
-  [Token Databricks](https://docs.databricks.com/aws/pt/dev-tools/auth/pat)<br>
+  [Medallion Architecture](https://www.databricks.com/br/glossary/medallion-architecture)<br>
   [Secret Scope](https://learn.microsoft.com/en-us/azure/databricks/security/secrets/)<br>
   [Sistema de Arquivos de Blobs do Azure(ABFSS)](https://learn.microsoft.com/pt-br/azure/storage/blobs/data-lake-storage-abfs-driver)<br>
-  [Conexão Azure Data Lake](https://docs.databricks.com/aws/pt/connect/storage/azure-storage)
+  [Token Databricks](https://docs.databricks.com/aws/pt/dev-tools/auth/pat)
 
   ---
   ## Nota de Rodapé
-  [^1]: [Medallion Architecture](https://www.databricks.com/br/glossary/medallion-architecture)
-  [^2]: [AdventureWorks](https://learn.microsoft.com/en-us/sql/samples/adventureworks-install-configure?view=sql-server-ver16&tabs=ssms)
-  [^3]: [Storage Access](storage_access.ipynb)<br>[Bronze to Silver](bronzetosilver.ipynb)<br>[Silver to Gold](silvertogold.ipynb)
-  
+  [^1]:[Storage Access](storage_access.ipynb)<br>[Bronze to Silver](bronzetosilver.ipynb)<br>[Silver to Gold](silvertogold.ipynb)
+  [^2]:[Pipeline](new_pipeline.json)
 
