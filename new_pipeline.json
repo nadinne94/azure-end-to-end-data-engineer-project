@@ -1,1 +1,175 @@
-{"$schema":"http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#","contentVersion":"1.0.0.0","parameters":{"factoryName":{"type":"string","metadata":"Nome do Data Factory"},"AzureDatabricks1":{"type":"string"},"SqlServerOnPremises":{"type":"string"},"AzureDataLakeStorage1":{"type":"string"}},"variables":{"factoryId":"[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"},"resources":[{"name":"[concat(parameters('factoryName'), '/new_pipeline')]","type":"Microsoft.DataFactory/factories/pipelines","apiVersion":"2018-06-01","properties":{"activities":[{"name":"Look for all tables","type":"Lookup","dependsOn":[],"policy":{"timeout":"0.12:00:00","retry":0,"retryIntervalInSeconds":30,"secureOutput":false,"secureInput":false},"userProperties":[],"typeProperties":{"source":{"type":"SqlServerSource","sqlReaderQuery":"SELECT\ns.name AS SchemaName,\nt.name AS TableName\nFROM sys.tables t\nINNER JOIN sys.schemas s\nON t.schema_id = s.schema_id\nWHERE s.name = 'SalesLT'","queryTimeout":"02:00:00","partitionOption":"None"},"dataset":{"referenceName":"SqlLookForTable","type":"DatasetReference","parameters":{}},"firstRowOnly":false}},{"name":"ForEach Schema Table","type":"ForEach","dependsOn":[{"activity":"Look for all tables","dependencyConditions":["Succeeded"]}],"userProperties":[],"typeProperties":{"items":{"value":"@activity('Look for all tables').output.value","type":"Expression"},"activities":[{"name":"Copy all tables","type":"Copy","dependsOn":[],"policy":{"timeout":"0.12:00:00","retry":0,"retryIntervalInSeconds":30,"secureOutput":false,"secureInput":false},"userProperties":[],"typeProperties":{"source":{"type":"SqlServerSource","sqlReaderQuery":{"value":"@{concat('SELECT * FROM ', item().SchemaName, '.', item().TableName)}","type":"Expression"},"queryTimeout":"02:00:00","partitionOption":"None"},"sink":{"type":"ParquetSink","storeSettings":{"type":"AzureBlobFSWriteSettings"},"formatSettings":{"type":"ParquetWriteSettings"}},"enableStaging":false,"translator":{"type":"TabularTranslator","typeConversion":true,"typeConversionSettings":{"allowDataTruncation":true,"treatBooleanAsNumber":false}}},"inputs":[{"referenceName":"SqlCopyAllTables","type":"DatasetReference","parameters":{}}],"outputs":[{"referenceName":"ParquetTables","type":"DatasetReference","parameters":{"schemaname":{"value":"@item().SchemaName","type":"Expression"},"tablename":{"value":"@item().TableName","type":"Expression"}}}]}]}},{"name":"Bronze to Silver","type":"DatabricksNotebook","dependsOn":[{"activity":"ForEach Schema Table","dependencyConditions":["Succeeded"]}],"policy":{"timeout":"0.12:00:00","retry":0,"retryIntervalInSeconds":30,"secureOutput":false,"secureInput":false},"userProperties":[],"typeProperties":{"notebookPath":"/Shared/bronzetosilver"},"linkedServiceName":{"referenceName":"[parameters('AzureDatabricks1')]","type":"LinkedServiceReference"}},{"name":"Silver to Gold","type":"DatabricksNotebook","dependsOn":[{"activity":"Bronze to Silver","dependencyConditions":["Succeeded"]}],"policy":{"timeout":"0.12:00:00","retry":0,"retryIntervalInSeconds":30,"secureOutput":false,"secureInput":false},"userProperties":[],"typeProperties":{"notebookPath":"/Shared/silvertogold"},"linkedServiceName":{"referenceName":"[parameters('AzureDatabricks1')]","type":"LinkedServiceReference"}}],"policy":{"elapsedTimeMetric":{}},"annotations":[],"lastPublishTime":"2026-01-13T22:58:27Z"},"dependsOn":["[concat(variables('factoryId'), '/datasets/SqlLookForTable')]","[concat(variables('factoryId'), '/datasets/SqlCopyAllTables')]","[concat(variables('factoryId'), '/datasets/ParquetTables')]"]},{"name":"[concat(parameters('factoryName'), '/SqlLookForTable')]","type":"Microsoft.DataFactory/factories/datasets","apiVersion":"2018-06-01","properties":{"linkedServiceName":{"referenceName":"[parameters('SqlServerOnPremises')]","type":"LinkedServiceReference"},"annotations":[],"type":"SqlServerTable","schema":[],"typeProperties":{}},"dependsOn":[]},{"name":"[concat(parameters('factoryName'), '/SqlCopyAllTables')]","type":"Microsoft.DataFactory/factories/datasets","apiVersion":"2018-06-01","properties":{"linkedServiceName":{"referenceName":"[parameters('SqlServerOnPremises')]","type":"LinkedServiceReference"},"annotations":[],"type":"SqlServerTable","schema":[],"typeProperties":{}},"dependsOn":[]},{"name":"[concat(parameters('factoryName'), '/ParquetTables')]","type":"Microsoft.DataFactory/factories/datasets","apiVersion":"2018-06-01","properties":{"linkedServiceName":{"referenceName":"[parameters('AzureDataLakeStorage1')]","type":"LinkedServiceReference"},"parameters":{"schemaname":{"type":"string"},"tablename":{"type":"string"}},"annotations":[],"type":"Parquet","typeProperties":{"location":{"type":"AzureBlobFSLocation","fileName":{"value":"@{concat(dataset().tablename, '.parquet')}","type":"Expression"},"folderPath":{"value":"@{concat(dataset().schemaname, '/', dataset().tablename)}","type":"Expression"},"fileSystem":"bronze"},"compressionCodec":"snappy"},"schema":[]},"dependsOn":[]},{"name":"[concat(parameters('factoryName'), '/default')]","type":"Microsoft.DataFactory/factories/managedVirtualNetworks","apiVersion":"2018-06-01","properties":{},"dependsOn":[]}]}
+{
+    "name": "new_pipeline",
+    "properties": {
+        "activities": [
+            {
+                "name": "Look for all tables",
+                "type": "Lookup",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "SqlServerSource",
+                        "sqlReaderQuery": "SELECT\ns.name AS SchemaName,\nt.name AS TableName\nFROM sys.tables t\nINNER JOIN sys.schemas s\nON t.schema_id = s.schema_id\nWHERE s.name = 'SalesLT'",
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None"
+                    },
+                    "dataset": {
+                        "referenceName": "SqlLookForTable",
+                        "type": "DatasetReference"
+                    },
+                    "firstRowOnly": false
+                }
+            },
+            {
+                "name": "ForEach Schema Table",
+                "type": "ForEach",
+                "dependsOn": [
+                    {
+                        "activity": "Look for all tables",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('Look for all tables').output.value",
+                        "type": "Expression"
+                    },
+                    "activities": [
+                        {
+                            "name": "Copy all tables",
+                            "type": "Copy",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "0.12:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "source": {
+                                    "type": "SqlServerSource",
+                                    "sqlReaderQuery": {
+                                        "value": "@{concat('SELECT * FROM ', item().SchemaName, '.', item().TableName)}",
+                                        "type": "Expression"
+                                    },
+                                    "queryTimeout": "02:00:00",
+                                    "partitionOption": "None"
+                                },
+                                "sink": {
+                                    "type": "ParquetSink",
+                                    "storeSettings": {
+                                        "type": "AzureBlobFSWriteSettings"
+                                    },
+                                    "formatSettings": {
+                                        "type": "ParquetWriteSettings"
+                                    }
+                                },
+                                "enableStaging": false,
+                                "translator": {
+                                    "type": "TabularTranslator",
+                                    "typeConversion": true,
+                                    "typeConversionSettings": {
+                                        "allowDataTruncation": true,
+                                        "treatBooleanAsNumber": false
+                                    }
+                                }
+                            },
+                            "inputs": [
+                                {
+                                    "referenceName": "SqlCopyAllTables",
+                                    "type": "DatasetReference"
+                                }
+                            ],
+                            "outputs": [
+                                {
+                                    "referenceName": "ParquetTables",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "schemaname": {
+                                            "value": "@item().SchemaName",
+                                            "type": "Expression"
+                                        },
+                                        "tablename": {
+                                            "value": "@item().TableName",
+                                            "type": "Expression"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Bronze to Silver",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "ForEach Schema Table",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Shared/bronzetosilver"
+                },
+                "linkedServiceName": {
+                    "referenceName": "AzureDatabricks1",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "Silver to Gold",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "Bronze to Silver",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Shared/silvertogold"
+                },
+                "linkedServiceName": {
+                    "referenceName": "AzureDatabricks1",
+                    "type": "LinkedServiceReference"
+                }
+            }
+        ],
+        "annotations": [],
+        "lastPublishTime": "2026-01-13T22:58:27Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}
