@@ -1,24 +1,27 @@
-<div align="justify">
+<div align="center">
 
-# Projeto Engenharia de Dados End to End com Azure
+# Projeto Engenharia de Dados End-to-End com Azure
+![Azure](https://img.shields.io/badge/Azure-0089D6?logo=microsoft-azure&logoColor=white)
+![Databricks](https://img.shields.io/badge/Databricks-FF3621?logo=databricks&logoColor=white)
+![Power BI](https://img.shields.io/badge/Power_BI-F2C811?logo=powerbi&logoColor=black)
 
-## 1. Visão Geral
-Este projeto demonstra a implementação de um pipeline de Engenharia de Dados de ponta a ponta *(end to end)* utilizando serviços da Microsoft Azure. O fluxo cobre desde a ingestão de dados transacionais até a disponibilização dos dados para consumo analítico no Power BI.
-
-O cenário utiliza o banco de dados **AdventureWorksLT**, simulando um ambiente real de dados operacionais.
-
----
-## 2. Objetivo do Projeto
-Demonstrar a construção de um pipeline de Engenharia de Dados escalável em Azure, aplicando a arquitetura Medallion desde a ingestão até o consumo analítico.
+</div>
 
 ---
-## 3. Arquitetura
+## Índice
+- [Visão Geral](#visão-geral)
+- [Arquitetura](#arquitetura)
+- [Tecnologias Utilizadas](#tecnologias-utilizadas)
+- [Pipeline de Dados](#pipeline-de-dados)
+- [Consumo Analítico](#consumo-analítico)
+- [Considerações Técnicas](considerações-técnicas)
+- [Referências](#referências)
+---
+## Visão Geral
+Este projeto implementa um pipeline de dados na Azure usando a **Medallion Architecture**. O fluxo cobre desde a ingestão de dados transacionais do AdventureWorksLT até a disponibilização para consumo analítico no Power BI.
 
- A solução foi construída seguindo o padrão **Medallion Architecture[^1]**:
-- **Bronze**: dados brutos ingeridos do SQL Server
-- **Silver**: dados tratados e padronizados
-- **Gold**: dados prontos para consumo analítico
-
+---
+## Arquitetura
 <div align="center">
 
   ![](docs/arquitetura.png)
@@ -26,26 +29,21 @@ Demonstrar a construção de um pipeline de Engenharia de Dados escalável em Az
 Fluxo dos dados: SQL Server → ADF → ADLS (Bronze/Silver/Gold) → Databricks → Power BI
 </div>
 
-### Tecnologias Utilizadas:
+---
+## Tecnologias Utilizadas:
+
 - **SQL Server:** banco de dados (on-premises)
 - **Azure Data Factory**: orquestração e ingestão de dados
 - **Azure Data Lake Storage Gen2**: armazenamento em camadas
-- **Azure Databricks Access Connector**: integrar o Azure Data Factory ao Azure Databricks
+- **Azure Databricks Access Connector**: integração do ao Databricks
 - **Azure Key Vault**: segurança e governança dos dados
-- **Azure Databricks**: processamento e transformação de dados
+- **Databricks**: processamento e transformação de dados
 - **Power BI**: consumo analítico
 ---
-## 5. Pipeline de Dados
+
+## Pipeline de Dados
 ### Criar recursos no Azure
-#### Storage account
-- Tipo de armazenamento preferencial: Armazenamento de Blobs do Azure ou Azure Data Lake Storage Gen 2
-- Desempenho: Standard
-- Replicação: LRS (armazenamento com redundância local)
-- Habilitar namespace hierárquico
-- Controle de acesso: Storage Blob Data Contributor
-  - Data Factory
-  - Databricks Access Conector
-  - Microsoft Entra Id (Registro de aplicativo)
+1. Storage account
 ```
 /Armazenamento de dados
   ├──Contêineres
@@ -53,77 +51,50 @@ Fluxo dos dados: SQL Server → ADF → ADLS (Bronze/Silver/Gold) → Databricks
        ├──silver
        └──gold/
 ```
-#### Data Factory
-- Habilitar a Rede Virtual Gerenciada no AutoResolveIntegrationRuntime padrão Habilitar namespace hierárquico
-#### Databricks
-- Tipo de Preço: Premium
-- Tipo de workspace: Híbrido
-#### Databricks Access Conector
-- Configuração padrão
-#### Key Vault
-- Tipo de preço: Padrão
-- Modelo de permissão: Política de acesso de cofre
-- Politica de acesso:
-  - Data Factory
-  - Databricks
+2. Data Factory
+3. Databricks
+4. Databricks Access Conector
+5. Key Vault
 
-### Vinculação de serviços (SQL Server, Key Vault, Storage Acount, Databricks)
-#### Conectar o Data Factory ao banco de dados SQL Server On-Premises
-- [Configurar o SQL Server](sqlserveronprem)
-- Serviço Vinculado: SQL Server
-  - Runtime de integração: Self-Hosted (SHIR)
-    - Configuração expressa
-      - Tipo de Autenticação: Autenticação do SQL
-      - Acesso Key Vault: Serviço vinculado do AKV[^2]
-      - Trust server certificate
-#### Conectar o Data Factory ao Storage Acount
-- Runtime de integração: AutoResolveIntegrationRuntime (Criação interativa habilitado)
-- Tipo de Autenticação: Chave da Conta
-#### Conectar o Data Factory ao Databricks
-- Runtime de integração: AutoResolveIntegrationRuntime (Criação interativa habilitado)
-- Cluster Interativo Existente
-- Tipo de autenticação: Acesso ao Token[^3]
+### Vincular Serviços
+- SQL Server
+- Key Vault
+- Storage Acount
+- Databricks
 ### Ingestão dos dados
-Ingestão dos dados do banco de dados on-prem na camada bronze do datalake
-- Criar novo pipeline -> Atividades:
-  - LookUp
-    - Novo conjunto de dados: SQL Server
-    - Usar consulta
-         ```
-         SELECT
+<details open>
+<summary>No data Factory:</summary>
+
+ 
+ LookUp
+  - SQL Server
+  
+ ```
+   SELECT
          s.name AS SchemaName,
          t.name AS TableName
          FROM sys.tables t
          INNER JOIN sys.schemas s
          ON t.schema_id = s.schema_id
          WHERE s.name = 'SalesLT'
-         ```
-  - ForEach
-    - Conectar ao LookUp
-        - Itens: ```@activity('Look for all tables').output.value```
-    - Copydata
-       - Novo conjunto de dados: SQL Server -> Serviço Vinculado: (SHIR)
-       - Consulta: `@{concat('SELECT * FROM ', item().SchemaName, '.', item().TableName)}`
-         <div align='center'>
-          <img width="1085" height="166" alt="image" src="https://github.com/user-attachments/assets/f70f966e-a41d-4027-bf72-e18021f568e9" />
-         </div>
-       - Conjunto de dados do coletor: Azure Data Lake Gen2
-         - Formato: Parquet
-           - Caminho do arquivo:
-             - Sistema de arquivo: contêiner **bronze** já criado no StorageAcount
-             - Diretório: `@{concat(dataset().schemaname, '/', dataset().tablename)}`
-             - Nome do Arquivo: `@{concat(dataset().tablename, '.parquet')}`
-
+   ```
+ 
+ ForEach
+  - Conectar ao LookUp: ```@activity('Look for all tables').output.value```
+  - Copydata
+    - _Copia os dados_: SQL Server -> Serviço Vinculado: (SHIR): `@{concat('SELECT * FROM ', item().SchemaName, '.', item().TableName)}`
+     <img width="1085" height="166" alt="image" src="https://github.com/user-attachments/assets/f70f966e-a41d-4027-bf72-e18021f568e9" />
+   
+     - _Cola os dados_: Azure Data Lake Gen2 -> _Parquet(formato do arquivo)_
+    <div align='center'><img width="973" height="254" alt="image" src="https://github.com/user-attachments/assets/1c81056a-4dbd-48bf-a9c1-c71ce6f1c87c" /></div>
  <img width="1837" height="772" alt="image" src="https://github.com/user-attachments/assets/36818e48-232f-4e19-b701-d4b035aa20f4" />
+ 
+ </details>
 
  ### Processamento dos dados
  Autenticar e acessar aos dados armazendaos, além da aplicação de transformações de dados no Databricks
  - Iniciar o Databricks
  - Criate Compute
-   - Runtime do Databricks: Scala 2.12
-   - Aceleração do Photon: Desativar
-   - Terminar após: 15minutos de inatividade
-   - Modo de acesso: Partilhado
  - Workspace -> Shared -> Notebook
  #### Acesso ao armazenamento
  - Armazenamento das chaves cliente_id e cliente_secret no Secret Scope[^4]
@@ -139,7 +110,7 @@ Ingestão dos dados do banco de dados on-prem na camada bronze do datalake
 - Reorganização dos dados por entidade
 - Garantia de consistência de schema
 - Dados salvos no container **_gold_**, disponibilizados para consumo.
-- [Silver to Gold](bronzetosilver.ipynb)
+- [Silver to Gold](silvertogold.ipynb)
 
 ### Conexão entre o Databricks e o Data Factory
 - Data Factory -> Atividades -> Notebook
@@ -153,7 +124,7 @@ Ingestão dos dados do banco de dados on-prem na camada bronze do datalake
 ![](docs/pipelineexecutada.png)
 
 ---
-## 6. Estrutura do Data Lake
+### Estrutura do Data Lake
 
 ```text
 /Containers
@@ -175,9 +146,11 @@ Ingestão dos dados do banco de dados on-prem na camada bronze do datalake
        ├── Customer/
        ├── Product/
  ````
- ----
-## 7. Consumo Analítico (Power BI)
-- Transformar os dados em formato delta em tabelas sql
+
+----
+## Consumo Analítico
+
+Transformar os dados em formato delta em tabelas sql
   ```
   gold_base_path = "abfss://gold@armazenamentodatalake26.dfs.core.windows.net/SalesLT/"
   spark.sql("USE CATALOG databricks_7405608788677390")
@@ -206,8 +179,9 @@ Ingestão dos dados do banco de dados on-prem na camada bronze do datalake
 <img width="3484" height="644" alt="image" src="https://github.com/user-attachments/assets/ba18cf21-c8e3-4745-826f-f3669c71c309" />
 
 ---
-## 8. Considerações Técnicas
+## Considerações Técnicas
 - O projeto foi adaptado para o ambiente **Azure Free Trial**
+- Projeto desenvolvido a partir de um tutorial do canal [Brazil Data Guy](https://www.youtube.com/watch?v=viKANCDhOqo&list=PLjofrX8yPdUQl_Z5w6gM0yet_3XGPSqjV)
 - Algumas configurações foram ajustadas em relação ao tutorial original
 - Orquestração centralizada no Azure Data Factory
 - Transformações concentradas no Databricks
@@ -216,16 +190,10 @@ Ingestão dos dados do banco de dados on-prem na camada bronze do datalake
 - O foco do projeto é Engenharia de Dados, não modelagem analítica
 
 ---
-## 9. Fonte
-Projeto desenvolvido a partir de um tutorial do canal **Brazil Data Guy**, com adaptações e implementações próprias.
-
-[Projeto Engenharia de Dados End to End](https://www.youtube.com/watch?v=viKANCDhOqo&list=PLjofrX8yPdUQl_Z5w6gM0yet_3XGPSqjV)
-
----
 ## Referências
-[^1]:Medallion Architecture: https://www.databricks.com/br/glossary/medallion-architecture
-[^2]Key Vault: https://learn.microsoft.com/pt-br/azure/data-factory/store-credentials-in-key-vault
-[^3]:Token Databricks: https://docs.databricks.com/aws/pt/dev-tools/auth/pat
-[^4]:Secret Scope: https://learn.microsoft.com/en-us/azure/databricks/security/secrets/
-[^5]:Sistema de Arquivos de Blobs do Azure(ABFSS): https://learn.microsoft.com/pt-br/azure/storage/blobs/data-lake-storage-abfs-driver
-[^6]:Conexão Azure Data Lake: https://docs.databricks.com/aws/pt/connect/storage/azure-storage
+[Medallion Architecture](https://www.databricks.com/br/glossary/medallion-architecture)<br>
+[Key Vault](https://learn.microsoft.com/pt-br/azure/data-factory/store-credentials-in-key-vault)<br>
+[Token Databricks](https://docs.databricks.com/aws/pt/dev-tools/auth/pat)<br>
+[Secret Scope](https://learn.microsoft.com/en-us/azure/databricks/security/secrets/)<br>
+[Sistema de Arquivos de Blobs do Azure(ABFSS)](https://learn.microsoft.com/pt-br/azure/storage/blobs/data-lake-storage-abfs-driver)<br>
+[Conexão Azure Data Lake](https://docs.databricks.com/aws/pt/connect/storage/azure-storage)
