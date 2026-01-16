@@ -47,7 +47,7 @@ Power BI | Consumo analítico
 
 ---
 ## Arquitetura
-A arquitetura segue um fluxo clássico de engenharia de dados:
+A arquitetura estabelecida para o processamento dos dados consiste em:
   - Fonte de dados: base de dados relacional
   - Ingestão: Azure Data Factory
   - Armazenamento: Azure Data Lake Storage Gen2
