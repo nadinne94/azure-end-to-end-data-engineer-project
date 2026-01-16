@@ -50,7 +50,7 @@ Power BI | Consumo analítico
 A arquitetura estabelecida para o processamento dos dados consiste em:
   - Fonte de dados: base de dados relacional
   - Ingestão: Azure Data Factory
-  - Armazenamento: Azure Data Lake Storage Gen2 _(ADLS)_
+  - Armazenamento: Azure Data Lake Storage Gen2 _(ADLS Gen2)_
   - Processamento: Azure Databricks (Spark + Delta Lake)
   - Consumo: Power BI
 ### Fluxo do Pipeline
