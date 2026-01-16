@@ -11,7 +11,7 @@
 
 >**Fonte do projeto**
 >
->Este projeto foi desenvolvido com base no tutorial do YouTube do canal [Brazil Data Guy](https://www.youtube.com/watch?v=viKANCDhOqo&list=PLjofrX8yPdUQl_Z5w6gM0yet_3XGPSqjV), com adaptações, extensões e decisões técnicas próprias.
+>Este projeto foi desenvolvido com base no tutorial do YouTube do canal [Brazil Data Guy](https://www.youtube.com/watch?v=viKANCDhOqo&list=PLjofrX8yPdUQl_Z5w6gM0yet_3XGPSqjV), com adaptações e decisões técnicas próprias.
 
 ---
 
@@ -80,37 +80,44 @@ A arquitetura estabelecida para o processamento dos dados consiste em:
 
 ---
 ## Como executar o Projeto
-**1. Criar recursos no Azure**
+_**1. Criar recursos no Azure**_
 - Storage account
 - Data Factory
 - Databricks
 - Databricks Access Conector
 - Key Vault
 
-**2. Configurar permissões de acesso (RBAC)**
+_**2. Configurar permissões de acesso (RBAC)**_ <br>
+O Data Factory e o Databricks precisam de autorização adequada para leitura e escrita no Data Lake, bem como acesso aos segredos armazenados no Key Vault.
 
-  O Data Factory e o Databricks precisama de autorização adequada para leitura e escrita no ADLS Gen2, bem como acesso seguro aos segredos armazenados no Azure Key Vault.
-
-**3. Vincular Serviços _(Estúdio Data Factory)_**
-  
-  No Data Factory, foram configurados Linked Services para estabelecer a comunicação entre os serviços do pipeline, incluindo:
+_**3. Vincular Serviços (Estúdio Data Factory)**_<br>
+No Data Factory, foram configurados Linked Services para estabelecer a comunicação entre os serviços do pipeline, incluindo:
   - SQL Server
   - Key Vault
   - ADLS Gen2
   - Databricks
 
-**4. Executar o pipeline de ingestão no Data Factory**
+_**4. Executar o pipeline de ingestão no Data Factory**_<br>
+A ingestão dos dados no ambiente _on-premises_ requer que o Data Factory esteja conectado ao servidor de origem por meio de um **Self-hosted Integration Runtime**, garantindo comunicação entre o ambiente local e a nuvem.
+Ao final da execução, os dados são armazenados na camada **Bronze** do Data Lake em formato **Parquet**.
+
 ```
-    Pipeline Principal:
-    ├── Lookup: Lista tabelas do SalesLT
-    ├── ForEach: Processa cada tabela
-    └── Copy Data: SQL Server → Data Lake
+Pipeline Principal:
+    ├── Lookup: Recupera dinamicamente a lista de tabelas do schema SalesLT
+    ├── ForEach: Itera sobre cada tabela identificada
+    └── Copy Data: SQL Server → Azure Data Lake Storage Gen2
         ├── Fonte: SELECT * FROM SalesLT.{tabela}
         └── Destino: /bronze/SalesLT/{tabela}.parquet
 ```
-![](docs/ingestao_data.png)
+<div align='center'>
+Representação da etapa de ingestão
+  
+![Ingestão dos Dados](docs/ingestao_data.png)
 
-**5. Processamento no Databricks**
+</div>
+
+_**5. Processamento no Databricks**_<br>
+No Databricks ocorrem as etapas responsáveis por extrair dados da camada Bronze, aplicar transformações, armazená-los na camada Silver e, posteriormente, na camada Gold, padronizar esquemas e prepar os dados para consumo analítico. 
 
 1ª Etapa:
 - Conexão com o ADLS Gen2
@@ -129,31 +136,35 @@ silver_to_gold|/silver/|/gold/|•Garantia de consistência de schemag<br> •Re
 - Criar tabelas Delta registradas como tabelas SQL
 - Conectar o Power BI ao SQL Warehouse_(databricks)_
   
-> Os notebooks no Azure Databricks são responsáveis por extrair dados da camada Bronze, aplicar transformações para Silver e Gold, padronizando esquemas e preparando os dados para consumo analítico. Os notebooks utilizados estão disponíveis na seção final deste repositório.[^1]
+> Os notebooks utilizados estão disponíveis na seção final deste repositório.[^1]
 
-**6. Automação do Pipeline**
-
-A automação é feita via gatilhos programados no Azure Data Factory, que iniciam o pipeline e chamam automaticamente os notebooks no Azure Databricks, garantindo um fluxo de dados end-to-end sem necessidade de intervenção manual.
+_**6. Automação do Pipeline**_<br>
+A automação é feita via gatilhos programados no Data Factory, que iniciam o pipeline e chamam automaticamente os notebooks no Databricks, garantindo um fluxo de dados end-to-end sem necessidade de intervenção manual.
+<div align='center'>
+Representação do pipeline completo e automatizado
   
 ![](docs/pipelineexecutada.png)
-  
+</div>
+
 > Arquivo JSON com o código utilizado para este pipeline está disponível ao final do projeto para consulta e reprodução.[^2]
   
-**7. Consumo Analítico**
+_**7. Consumo Analítico**_<br>
+O consumo analítico foi realizado conectando o Power BI ao Databricks SQL Warehouse, transferindo os dados já em formato de tabelas proporcionando a leitura direta dos arquivos.
 
-O consumo analítico foi realizado conectando o Power BI ao Databricks SQL Warehouse, que expõe as tabelas da camada Gold de forma otimizada para BI, proporcionando performance superior à leitura direta de arquivos.
+<div align='center'>  
+Importação dos dados para o Power BI
   
-<img width="3484" height="644" alt="image" src="https://github.com/user-attachments/assets/ba18cf21-c8e3-4745-826f-f3669c71c309" />
-  
+![](docs/power_bi.png)
+</div>
+
 > Por se tratar de um projeto com foco em Engenharia de Dados, a modelagem analítica detalhada (como análise aprofundada de relacionamentos entre tabelas ou dashboards exploratórios) ficou fora do escopo principal, que priorizou a construção, automação e integração do pipeline de dados.
 
 ---
 ## Considerações Finais
 
-Este projeto demonstra a construção de um pipeline de dados moderno e automatizado em ambiente Azure, aplicando design de dados como arquitetura em camadas (Bronze, Silver e Gold), uso do Delta Lake, controle de schemas e orquestração com o Azure Data Factory. 
+Este projeto demonstra a construção de um pipeline de dados automatizado em ambiente Azure, aplicando design de dados como arquitetura em camadas (Bronze, Silver e Gold), processamento no Databricks, uso do Delta Lake, controle de schemas e orquestração com o Data Factory. 
 
-O foco esteve na ingestão, processamento e disponibilização confiável dos dados para consumo analítico, priorizando escalabilidade, governança e automação. O projeto pode ser facilmente expandido para incluir novas fontes de dados, camadas adicionais de transformação ou análises mais avançadas, servindo como base para soluções de dados em ambientes corporativos.
-
+O foco esteve na ingestão, processamento e disponibilização dos dados para consumo analítico, priorizando escalabilidade, governança e automação. O projeto pode ser facilmente expandido para incluir novas fontes de dados, camadas adicionais de transformação ou análises mais avançadas, servindo como base para soluções de dados em ambientes corporativos.
 
 ---
 ## Referências
