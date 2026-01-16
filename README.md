@@ -38,7 +38,7 @@ Tecnologia | Descrição
 :---|:---
 SQL Server | Banco de dados (on-premises)
 Azure Data Factory| Orquestração e ingestão de dados
-Azure Data Lake Storage Gen2 (ADLS)| Armazenamento em camadas
+Azure Data Lake Storage Gen2| Armazenamento em camadas
 Azure Databricks | Processamento e transformação de dados
 Delta Lake | Camada transacional e versionamento
 Databricks SQL | Processamento e transformação de dados
@@ -50,7 +50,7 @@ Power BI | Consumo analítico
 A arquitetura estabelecida para o processamento dos dados consiste em:
   - Fonte de dados: base de dados relacional
   - Ingestão: Azure Data Factory
-  - Armazenamento: Azure Data Lake Storage Gen2
+  - Armazenamento: Azure Data Lake Storage Gen2 _(ADLS)_
   - Processamento: Azure Databricks (Spark + Delta Lake)
   - Consumo: Power BI
 ### Fluxo do Pipeline
