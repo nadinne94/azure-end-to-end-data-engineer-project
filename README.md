@@ -179,5 +179,5 @@ O foco esteve na ingestão, processamento e disponibilização dos dados para co
 
 ---
 ## Nota de Rodapé
-[^1]:[Storage Access]([storage_access.ipynb](https://github.com/nadinne94/azure-end-to-end-data-engineer-project/blob/main/storage_access.ipynb)<br>[Bronze to Silver](https://github.com/nadinne94/azure-end-to-end-data-engineer-project/blob/main/bronzetosilver.ipynb)<br>[Silver to Gold](https://github.com/nadinne94/azure-end-to-end-data-engineer-project/blob/main/silvertogold.ipynb)
+[^1]:[Storage Access](https://github.com/nadinne94/azure-end-to-end-data-engineer-project/blob/main/storage_access.ipynb)<br>[Bronze to Silver](https://github.com/nadinne94/azure-end-to-end-data-engineer-project/blob/main/bronzetosilver.ipynb)<br>[Silver to Gold](https://github.com/nadinne94/azure-end-to-end-data-engineer-project/blob/main/silvertogold.ipynb)
 [^2]:[Pipeline](new_pipeline.json)
