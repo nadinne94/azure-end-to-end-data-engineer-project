@@ -4,9 +4,10 @@
 ![Azure](https://img.shields.io/badge/Azure-0089D6?logo=microsoft-azure&logoColor=white)
 ![Databricks](https://img.shields.io/badge/Databricks-FF3621?logo=databricks&logoColor=white)
 ![ADF](https://img.shields.io/badge/orchestration-Azure%20Data%20Factory-blue)
+<img src="https://img.shields.io/badge/Python-FFD43B?style=for-the-badge&logo=python&logoColor=blue" alt="Logo do Python" height="20">
 ![Delta Lake](https://img.shields.io/badge/Delta_Lake-003366?logo=apachespark&logoColor=white)
 ![Power BI](https://img.shields.io/badge/Power_BI-F2C811?logo=powerbi&logoColor=black)
-![Language](https://img.shields.io/badge/language-Python-blue)
+
 </div>
 
 >**Fonte do projeto**
